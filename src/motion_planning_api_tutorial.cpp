@@ -45,6 +45,8 @@
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <moveit_msgs/PlanningScene.h>
 #include <boost/scoped_ptr.hpp>
+#include <moveit/robot_state/conversions.h>
+#include <moveit_visual_tools/moveit_visual_tools.h>
 #include "spline.h"
 
 moveit_msgs::RobotTrajectory toROSJointTrajectory(const std::vector<std::vector<double> >& points,
@@ -143,6 +145,7 @@ int main(int argc, char** argv)
   // the world (including the robot).
   planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model));
 
+  std::cout << "************!!!!!planning scene done !!!***********88" << std::endl;
   // We will now construct a loader to load a planner, by name.
   // Note that we are using the ROS pluginlib library here.
 
@@ -156,6 +159,22 @@ int main(int argc, char** argv)
   ros::WallDuration sleep_time(15.0);
   sleep_time.sleep();
 
+/// ****************visual tool
+  namespace rvt = rviz_visual_tools;
+  moveit_visual_tools::MoveItVisualTools visual_tools("world");
+  visual_tools.deleteAllMarkers();
+
+  // Remote control is an introspection tool that allows users to step through a high level script
+  // via buttons and keyboard shortcuts in Rviz
+  visual_tools.loadRemoteControl();
+  Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
+  text_pose.translation().z() = 1.5; // above head of PR2
+  visual_tools.publishText(text_pose, "MoveGroupInterface Demo", rvt::WHITE, rvt::XLARGE);
+
+
+
+
+
   // Pose Goal
   // ^^^^^^^^^
   // We will now create a motion plan request for the right arm of the PR2
@@ -164,11 +183,14 @@ int main(int argc, char** argv)
       node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
   moveit_msgs::DisplayTrajectory display_trajectory;
 
+  ros::Publisher robot_state_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>("display_robot_state",1);
+
   /* Visualize the trajectory */
   
   robot_state::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
   const robot_state::JointModelGroup* joint_model_group = robot_state.getJointModelGroup("manipulator");
-  display_trajectory.trajectory_start = robot_state;
+  //display_trajectory.trajectory_start = robot_state;
+  robot_state::robotStateToRobotStateMsg(robot_state,  display_trajectory.trajectory_start );
 
   // Now, setup a joint space goal
   std::vector<std::vector<double> > pidpoints;
@@ -206,7 +228,9 @@ int main(int argc, char** argv)
 	  return 0;
   }
   std::vector<std::string> names;
-  node_handle.getParam("joint_names", names);
+  names = joint_model_group->getJointModelNames();
+  std::cout <<"&&&&&&&&&&&&&&&&&&&&&&&names&&&&&&&&&"<<std::endl;
+  for(size_t i = 0; i < names.size(); i++) std::cout<<names[i] << std::endl;
   moveit_msgs::RobotTrajectory joint_solution = toROSJointTrajectory(result, names, 1.0);
   
   // Call the planner and visualize the trajectory
@@ -220,6 +244,34 @@ int main(int argc, char** argv)
   std::cout << "*******************!!!!****************"<< std::endl;
   /* Now you should see two planned trajectories in series*/
   display_publisher.publish(display_trajectory);
+ // std::cout << display_trajectory<<std::endl;
+  sleep_time.sleep();
+
+  ros::Rate loop_rate(1);
+  size_t nodenumber = joint_solution.joint_trajectory.points.size();
+  std::cout << "nodenumber:::::" << nodenumber << std::endl;
+  if (nodenumber>0)
+  {
+    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model));
+    for (int i = 0; i < nodenumber && ros::ok(); ++i)
+    {
+      moveit_msgs::DisplayRobotState statemsg;
+      moveit::core::jointTrajPointToRobotState(joint_solution.joint_trajectory, i, *kinematic_state);
+      robot_state::robotStateToRobotStateMsg(*kinematic_state,  statemsg.state);
+      robot_state_publisher.publish(statemsg);
+
+      ros::spinOnce();
+      loop_rate.sleep();
+
+
+    }
+      
+
+  }
+ //visual_tools.publishTrajectoryLine(joint_solution, joint_model_group);
+  //visual_tools.trigger();
+
+
 
   /* We will add more goals. But first, set the state in the planning
      scene to the final state of the last plan */
