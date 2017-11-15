@@ -1,0 +1,13 @@
+<launch>
+  <include file="$(find lwa4p_movit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <node name="kinematic_test"
+        pkg="moveit_tutorials"
+        type="kinematic_test"
+        respawn="false" output="screen">
+    <rosparam command="load"
+              file="$(find lwa4p_moveit_config)/config/kinematics.yaml"/>
+  </node>
+</launch>
