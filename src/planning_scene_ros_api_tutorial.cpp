@@ -74,6 +74,7 @@ int main(int argc, char **argv)
   ros::Publisher planning_scene_diff_publisher = node_handle.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
   while (planning_scene_diff_publisher.getNumSubscribers() < 1)
   {
+    ROS_INFO("sleep");
     ros::WallDuration sleep_t(0.5);
     sleep_t.sleep();
   }

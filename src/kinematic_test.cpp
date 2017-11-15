@@ -26,7 +26,7 @@ int main(int argc, char **argv)
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
 
-  planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model));
+  planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(kinematic_model));
   robot_state::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
   const robot_state::JointModelGroup* joint_model_group = robot_state.getJointModelGroup("manipulator");
   
@@ -39,8 +39,11 @@ int main(int argc, char **argv)
   joint_values[4] = 0.7;
   joint_values[5] = 0; 
 
+  std::vector<double> new_joint_values(6, 0.0);
   robot_state.setJointGroupPositions(joint_model_group, joint_values);
-  const Eigen::Affine3d &end_effector_state = robot_state.getGlobalLinkTransform("manipulator");
+  robot_state.copyJointGroupPositions(joint_model_group, new_joint_values);
+  ROS_INFO_STREAM("new value: " << new_joint_values[0]);
+  const Eigen::Affine3d &end_effector_state = robot_state.getGlobalLinkTransform("arm_6_link");
   ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
   ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
 
