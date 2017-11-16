@@ -21,11 +21,12 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "kinematics_test");
   ros::AsyncSpinner spinner(1);
   spinner.start();
-
+  ros::NodeHandle node_handle;
   //set up
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
+  ik_service_= node_handle.serviceClient<moveit_msgs::GetPositionIK>("/compute_ik");
 
   planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(kinematic_model));
   robot_state::RobotState& robot_state = planning_scene->getCurrentStateNonConst();

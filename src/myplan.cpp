@@ -57,9 +57,9 @@ while (planning_scene_diff_publisher.getNumSubscribers() < 1)
     co.id = "sphere";
 	  co.operation = moveit_msgs::CollisionObject::ADD;
 
-	   shape_msgs::SolidPrimitive sphere;
+	  shape_msgs::SolidPrimitive sphere;
     sphere.type = shape_msgs::SolidPrimitive::SPHERE;
-    sphere.dimensions.push_back(0.1);
+    sphere.dimensions.push_back(0.2);
 
     geometry_msgs::Pose pose;
   	pose.position.x = 0.6;

@@ -24,16 +24,11 @@ public:
 	double dis;
 
 	mid_info(Point2d p, double d):pos(p), dis(d){};
-	bool operator < (const mid_info & other) const
-	{
-		return this->dis > other.dis;
-	}
-	bool operator > (const mid_info & other) const
-	{
-		return this->dis < other.dis;
-	}
+	
 };
 
+
+bool disgreater( const mid_info& a, const mid_info& b)  { return a.dis > b.dis; }
 
 
 class Env2d
@@ -115,7 +110,7 @@ private:
 
 	vector<int> radius;
 	//priority_queue<mid_info, vector<mid_info>, Compare> pids_que;
-	vector<mid_info> pids_vector;
+	vector<mid_info> pmids_vector;
 	Point2d currentpos;
 	const Point2d goal;
 	const Point2d start;
@@ -134,20 +129,20 @@ void Env2d::GenerateGaps()
 		//left
 		double dis(centers[i].x - radius[i]);
 		Point2d pid(dis*0.5,centers[i].y);
-		pids_vector.push_back(mid_info(pid,dis));
+		pmids_vector.push_back(mid_info(pid,dis));
 		//right
 		dis = env_wid - centers[i].x - radius[i];
 		pid.x = env_wid - dis*0.5;
-		pids_vector.push_back(mid_info(pid,dis));
+		pmids_vector.push_back(mid_info(pid,dis));
 		//down
 		dis = centers[i].y - radius[i];
 		pid.x = centers[i].x;
 		pid.y = dis*0.5;
-		pids_vector.push_back(mid_info(pid,dis));
+		pmids_vector.push_back(mid_info(pid,dis));
 		//up
 		dis = env_height - centers[i].y - radius[i];
 		pid.y = env_height - dis*0.5;
-		pids_vector.push_back(mid_info(pid,dis));
+		pmids_vector.push_back(mid_info(pid,dis));
 
 		//dis to other obstacle
 		if(i == obs_num-1) 
@@ -156,7 +151,7 @@ void Env2d::GenerateGaps()
 		{
 			dis = norm(centers[i] - centers[j]);
 			pid = (centers[i] + centers[j])*0.5;
-			pids_vector.push_back(mid_info(pid,dis));
+			pmids_vector.push_back(mid_info(pid,dis));
 			//circle(img, pid, 2, Scalar(0,0,255), CV_FILLED, 8);	
 		}
 		
@@ -164,8 +159,8 @@ void Env2d::GenerateGaps()
 
 	}
 
-	std::sort(pids_vector.begin(), pids_vector.end());
-	for(auto i:pids_vector)
+	std::sort(pmids_vector.begin(), pmids_vector.end(),disgreater);
+	for(auto i:pmids_vector)
 	{
 		cout << i.dis <<" " << i.pos.x << " " << i.pos.y<< endl; 
 	}
@@ -173,7 +168,7 @@ void Env2d::GenerateGaps()
 }
 void Env2d::draw_midpoints()
 {
-	for(auto ele : pids_vector)
+	for(auto ele : pmids_vector)
 	{
 		//const mid_info& mid = pids_que.top(); 
 		Point2d& ele_pos = ele.pos;
@@ -258,7 +253,7 @@ bool Env2d::isPosFree(const Point2d& point)
 			return false;
 
 	}
-	cout << "is fee!!" << endl;
+	cout << "is free!!" << endl;
 	return true;
 }
 bool Env2d::forwardexist(const Point2d& point)
@@ -313,7 +308,7 @@ bool Env2d::plan()
 		}
 		bool foundonemid = false;
 		
-		for(auto it = pids_vector.begin(); it != pids_vector.end(); ++it)
+		for(auto it = pmids_vector.begin(); it != pmids_vector.end(); ++it)
 		{
 			const Point2d p_mid= it->pos;
 			if(isReachable(p_mid))
@@ -368,11 +363,11 @@ int main()
 {
 	Env2d env(300,300,0,0,300,300);
 	env.GenerateGaps();
-	env.draw_midpoints();
-	env.plan();
-	env.cubic_interp();
-	env.draw_traj();
-	env.draw_interptraj();
+	//env.draw_midpoints();
+	//env.plan();
+	//env.cubic_interp();
+	//env.draw_traj();
+	//env.draw_interptraj();
 	
 	
 	//env.draw_midpoints();
