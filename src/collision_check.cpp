@@ -18,38 +18,38 @@
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/robot_state/conversions.h>
+#include <moveit/planning_scene/planning_scene.h>
+
+#include <moveit/kinematic_constraints/utils.h>
+#include <eigen_conversions/eigen_msg.h>
 
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "myplanner init");
+	ros::init(argc, argv, "collision_checking");
  	ros::AsyncSpinner spinner(1);
  	spinner.start();
  	ros::NodeHandle nh;
 
-  ros::WallDuration sleep_time(10.0);
-    sleep_time.sleep();
-    sleep_time.sleep();
-
-ros::Publisher planning_scene_diff_publisher = nh.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
+  ros::WallDuration sleep_time(0.5);
   
-while (planning_scene_diff_publisher.getNumSubscribers() < 1)
-    {
-      ROS_INFO("sleep");
-      ros::WallDuration sleep_t(0.5);
-      sleep_t.sleep();
-    }
+  
  	//setup
  	//robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   	//robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
-  	ros::Publisher pub_co = nh.advertise<moveit_msgs::CollisionObject>("collision_object", 1);
+  
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+  robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+  planning_scene::PlanningScene planning_scene(kinematic_model);	
 
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
 
-  	//planning_scene::PlanningScene planning_scene(kinematic_model);
+  ROS_INFO_STREAM("Test 1: Current state is " << (collision_result.collision ? "in" : "not in") << " self collision");
 
-  	// to be deleted ?  for visualization
-  	
-  	
+  planning_scene.checkSelfCollision(collision_request, collision_result);
+
+  //collision_result.clear();
 
 	moveit_msgs::CollisionObject co;
     co.header.stamp = ros::Time::now();

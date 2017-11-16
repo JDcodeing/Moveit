@@ -13,6 +13,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <moveit/robot_state/conversions.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
+#include <dr_eigen/yaml.hpp>
 #include "spline.h"
 
 int main(int argc, char **argv)
@@ -46,22 +47,42 @@ int main(int argc, char **argv)
   const Eigen::Affine3d &end_effector_state = robot_state.getGlobalLinkTransform("arm_6_link");
   ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
   ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
+  geometry_msgs::Pose end_effector_pose = dr::toRosPose(affineToIsometry(end_effector_state));
+  //bool found_ik = robot_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+  moveit_msgs::GetPositionIK::Request ik_req;
+  //moveit_msgs::RobotState moveit_rs;
+  moveit_msgs::RobotState moveit_rs;
+  ik_req.ik_request.robot_state = moveit_rs;
 
-  bool found_ik = robot_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+  ik_req.ik_request.avoid_collisions = true;
 
-  // Now, we can print out the IK solution (if found):
-  if (found_ik)
-  {
-    robot_state.copyJointGroupPositions(joint_model_group, joint_values);
-    for (std::size_t i = 0; i < joint_names.size(); ++i)
+  geometry_msgs::PoseStamped pose_s;
+  pose_s.header.stamp = ros::Time::now();
+  pose_s.header.frame_id = "world";
+  pose_s.pose = end_effector_pose;
+
+  ik_req.ik_request.pose_stamped = pose_s;
+  ik_req.ik_request.timeout = ros::Duration(0.01);
+  ik_req.ik_request.attempts = 3;
+
+
+  moveit_msgs::GetPositionIK::Response ik_res;
+
+  if(ik_service_.call(ik_req, ik_res)){
+    if (ik_res.error_code.val == moveit_msgs::MoveItErrorCodes::NO_IK_SOLUTION){
+      ROS_INFO("*******************no ik solution!!!!**************");
+    } 
+    else 
     {
-      ROS_INFO("Joint %s: %f", joint_names[i].c_str(), joint_values[i]);
+       moveit::core::robotStateMsgToRobotState(ik_res.solution, robot_state);
+       robot_state.copyJointGroupPositions(joint_model_group, joint_values);
+      for (std::size_t i = 0; i < joint_names.size(); ++i)
+      {
+        ROS_INFO("Joint %s: %f", joint_names[i].c_str(), joint_values[i]);
+      }
     }
   }
-  else
-  {
-    ROS_INFO("Did not find IK solution");
-  }
+  
   ros::shutdown();
   return 0;
 
