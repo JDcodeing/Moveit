@@ -159,15 +159,29 @@ void addobstacles()
     sphere.type = shape_msgs::SolidPrimitive::SPHERE;
     sphere.dimensions.push_back(0.2);
     sphere_radius.push_back(0.2);
+    co.primitives.push_back(sphere);
+
+    shape_msgs::SolidPrimitive sphere2;
+    sphere2.type = shape_msgs::SolidPrimitive::SPHERE;
+    sphere2.dimensions.push_back(0.3);
+    sphere_radius.push_back(0.3);
+    co.primitives.push_back(sphere2);
 
     geometry_msgs::Pose pose;
     pose.position.x = 0.6;
     pose.position.y = 0.5;
-    pose.position.z = 1;
+    pose.position.z = 0.7;
     pose.orientation.w = 1.0;
     sphere_centers.push_back(Eigen::vector3d(0.6,0.5,1));
+     co.primitive_poses.push_back(pose);
+    pose.position.x = 0.5;
+    pose.position.y = 0.5;
+    pose.position.z = 0.5;
+    pose.orientation.w = 1.0;
+    sphere_centers.push_back(Eigen::vector3d(0.5,0.5,1.0));
+     co.primitive_poses.push_back(pose);
   
-    co.primitives.push_back(sphere);
+    //co.primitives.push_back(sphere);
     co.primitive_poses.push_back(pose);
 
     pub_co.publish(co);
@@ -242,13 +256,14 @@ int main(int argc, char** argv)
 
   planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(kinematic_model));
   robot_state::RobotState& robot_state = planning_scene->getCurrentStateNonConst();
+  
   const robot_state::JointModelGroup* joint_model_group = robot_state.getJointModelGroup("manipulator");
   const std::vector<std::string> &joint_names = joint_model_group->getVariableNames();
 
   ros::ServiceClient ik_service_client = nh.serviceClient<moveit_msgs::GetPositionIK>("/compute_ik");
   addobstacles();
 
-  
+
   
   
 
@@ -288,6 +303,11 @@ int main(int argc, char** argv)
   ik_req.ik_request.robot_state = moveit_rs;
   ik_req.ik_request.avoid_collisions = true;
   initpTraj.clear();
+
+  // the start point
+  robot_state.copyJointGroupPositions(joint_model_group, joint_values);
+  initpTraj.push_back(joint_values);
+  
 
   for(auto it = Traj_pos.begin(); it != Traj_pos.end(); it++)
   {
@@ -339,7 +359,7 @@ int main(int argc, char** argv)
  // std::cout << display_trajectory<<std::endl;
   sleep_time.sleep();
   ROS_INFO("Done");
-  
+
   return 0;
 
 
